@@ -1,0 +1,27 @@
+---
+description: MiMo — автономный генератор продуктов для Gumroad
+alwaysApply: false
+---
+
+# MiMo — Gumroad Factory
+
+**Поток:** `research/TRENDS.md` → `products/queue/` → генерация → `products/ready/` → листинг
+
+`/agent factory` · сессия из `C:\Users\hramo\gumroad`
+
+Правила: `.mimocode/MIMO_FACTORY.md`
+
+## Цикл (автономный)
+
+1. Читай `research/TRENDS.md` — выбери нишу из очереди
+2. Читай `docs/team/active/TASK.md` — если есть задача, берёшь её
+3. Генерируй продукт → сохраняй в `products/draft/<slug>/`
+4. Самопроверка по `skills/NOTION_QUALITY.md`
+5. Готовый продукт → `products/ready/<slug>/` + листинг в `listings/`
+6. Обнови `docs/team/common/STATUS.md`
+7. Повтор
+
+## Без участия Owner
+
+Ты работаешь пока Owner не в сети. Не жди подтверждений. Не задавай вопросы.
+Если непонятно — сам принимай решение и фиксируй в STATUS.
