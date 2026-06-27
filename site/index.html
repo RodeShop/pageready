@@ -83,7 +83,7 @@
       line-height: 1.7;
     }
     .hero-cta {
-      display: inline-flex; align-items: center;
+      display: inline-flex; align-items: center; gap-10px;
       background: var(--green); color: var(--white);
       padding: 16px 36px; border-radius: 10px;
       font-size: 16px; font-weight: 700;
@@ -210,8 +210,6 @@
     }
     footer .logo { font-size: 16px; }
     footer p { font-size: 13px; color: var(--gray-400); }
-    footer a { color: var(--gray-400); text-decoration: underline; }
-    footer a:hover { color: var(--green); }
 
     @media (max-width: 640px) {
       nav { padding: 16px 20px; }
@@ -270,7 +268,8 @@
   <div class="products-inner">
     <p class="section-label">Templates</p>
     <h2 class="section-title">Pick your workflow</h2>
-    <div class="products-grid">
+    <div class="products-grid" id="products-grid">
+      <!-- Populated by JS or manually -->
       <div class="product-card">
         <div class="product-thumb" style="background:#f0fdf4;">💼</div>
         <div class="product-body">
@@ -347,7 +346,7 @@
 <footer>
   <div class="logo">Rode<span>Shop</span></div>
   <p>RodeShop — Notion templates that work on day one.</p>
-  <p style="font-size:12px;"><a href="/pageready/privacy.html">Privacy Policy</a> &nbsp;·&nbsp; © 2026 RodeShop</p>
+  <p style="color:#cbd5e1;font-size:12px;">© 2026 RodeShop</p>
 </footer>
 
 </body>

@@ -1,0 +1,577 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gumroad Factory · Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: linear-gradient(150deg, #f0fdf4 0%, #ecfdf5 100%);
+      background-attachment: fixed;
+      color: #111827; min-height: 100vh;
+    }
+
+    .tabs-nav {
+      display: flex; padding: 0 32px;
+      border-bottom: 1px solid #e5e7eb; background: #fff;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 16px 20px; border: none; background: none;
+      color: #6b7280; cursor: pointer; font-size: 13px; font-weight: 500;
+      border-bottom: 2px solid transparent; letter-spacing: .01em;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: #111827; border-bottom-color: #059669; font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: #374151; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* BOARD */
+    .board-wrap { padding: 32px; overflow-x: auto; }
+    .board-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 24px;
+      margin-bottom: 32px; flex-wrap: wrap;
+    }
+    .board-header h1 { font-size: 26px; font-weight: 800; color: #111827; letter-spacing: -0.6px; }
+    .board-header p { color: #9ca3af; font-size: 11px; margin-top: 5px; text-transform: uppercase; letter-spacing: .07em; font-weight: 500; }
+
+    .board-progress { min-width: 140px; text-align: right; }
+    .board-progress-nums { font-size: 28px; font-weight: 800; color: #111827; line-height: 1; margin-bottom: 8px; letter-spacing: -1px; }
+    .board-progress-nums .total { font-size: 14px; font-weight: 400; color: #9ca3af; letter-spacing: 0; margin-left: 2px; }
+    .board-progress-bar { height: 4px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-bottom: 5px; }
+    .board-progress-fill { height: 100%; background: linear-gradient(90deg, #059669 0%, #10b981 100%); border-radius: 4px; transition: width 0.5s; }
+    .board-progress-label { font-size: 11px; color: #9ca3af; }
+
+    /* STATS BAR */
+    .stats-bar {
+      display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .stat-card {
+      background: #fff; border-radius: 10px; padding: 14px 20px;
+      border: 1px solid #e5e7eb; min-width: 120px; flex: 1;
+    }
+    .stat-card .val { font-size: 24px; font-weight: 800; color: #059669; letter-spacing: -1px; }
+    .stat-card .lbl { font-size: 11px; color: #9ca3af; margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* PHASES */
+    .phases { display: flex; gap: 16px; min-width: max-content; align-items: flex-start; }
+    .phase-col {
+      width: 264px; flex-shrink: 0;
+      background: #f8fafc; border-radius: 12px; padding: 16px;
+      border: 1px solid rgba(0,0,0,.07);
+      border-top: 3px solid #e5e7eb;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .phase-col:hover { box-shadow: 0 8px 32px rgba(0,0,0,.08); transform: translateY(-2px); }
+    .phase-col.phase-done    { border-top-color: #16a34a; }
+    .phase-col.phase-active  { border-top-color: #059669; }
+    .phase-col.phase-planned { border-top-color: #e5e7eb; }
+
+    .phase-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .phase-col-header-left { display: flex; align-items: center; gap: 8px; }
+    .phase-name { font-size: 13px; font-weight: 600; color: #374151; }
+    .phase-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: .5px; }
+    .badge-done    { background: #dcfce7; color: #16a34a; }
+    .badge-active  { background: #d1fae5; color: #059669; }
+    .badge-planned { background: #f3f4f6; color: #9ca3af; }
+    .phase-count { font-size: 12px; color: #9ca3af; font-weight: 500; }
+
+    /* TASK CARDS */
+    .task-card {
+      background: #fff; border-radius: 8px; padding: 12px 14px;
+      margin-bottom: 8px; border: 1px solid #e9ecef;
+      border-left: 3px solid transparent;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .task-card:last-child { margin-bottom: 0; }
+    .task-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); transform: translateY(-1px); }
+    .task-card.status-done        { border-left-color: #16a34a; }
+    .task-card.status-in_progress { border-left-color: #059669; }
+    .task-card.status-backlog     { border-left-color: #e5e7eb; }
+    .task-card.status-blocked     { border-left-color: #dc2626; }
+
+    .task-id { font-size: 10px; color: #9ca3af; margin-bottom: 4px; font-family: monospace; letter-spacing: .05em; }
+    .task-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 10px; line-height: 1.5; }
+
+    .subtasks { list-style: none; }
+    .subtasks li { font-size: 12px; color: #6b7280; padding: 2px 0; display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+    .subtasks li.done { color: #16a34a; text-decoration: line-through; }
+    .subtasks li::before { content: '·'; flex-shrink: 0; color: #d1d5db; }
+    .subtasks li.done::before { content: '✓'; flex-shrink: 0; color: #16a34a; }
+
+    .task-note { font-size: 11px; color: #059669; font-style: italic; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f0fdf4; }
+
+    .phase-empty { padding: 28px 16px; text-align: center; border: 1.5px dashed #e5e7eb; border-radius: 8px; color: #d1d5db; font-size: 12px; }
+
+    /* PIPELINE TAB */
+    .pipeline-wrap { padding: 32px; max-width: 900px; }
+    .pipeline-wrap h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .pipeline-step {
+      display: flex; gap: 16px; margin-bottom: 12px; align-items: flex-start;
+    }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%; background: #059669;
+      color: #fff; font-size: 13px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+    }
+    .step-num.manual { background: #f59e0b; }
+    .step-body { flex: 1; background: #fff; border-radius: 10px; padding: 14px 18px; border: 1px solid #e5e7eb; }
+    .step-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+    .step-desc { font-size: 12px; color: #6b7280; line-height: 1.6; }
+    .step-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+    .tag-auto   { background: #d1fae5; color: #059669; }
+    .tag-manual { background: #fef3c7; color: #b45309; }
+    .step-arrow { font-size: 20px; color: #d1d5db; margin: 0 auto 4px; display: block; text-align: center; width: 32px; }
+
+    /* NOTES */
+    .notes-section { margin-top: 40px; max-width: 760px; }
+    .notes-section h2 { font-size: 11px; font-weight: 600; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .note-card { background: #fff; border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; display: flex; gap: 16px; align-items: flex-start; border: 1px solid #e9ecef; border-left: 3px solid #059669; }
+    .note-date { font-size: 11px; color: #9ca3af; min-width: 80px; line-height: 1.5; white-space: nowrap; }
+    .note-text { font-size: 13px; color: #374151; line-height: 1.6; }
+
+    /* STICKERS */
+    .stickers-wrap { padding: 20px 32px; }
+    .stickers-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .btn-add-sticker { padding: 9px 20px; background: #059669; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+    .btn-add-sticker:hover { background: #047857; }
+    .stickers-area { position: relative; width: 100%; height: calc(100vh - 152px); background: #eef7f4; background-image: radial-gradient(circle, #b6d9ce 1px, transparent 1px); background-size: 24px 24px; border-radius: 12px; border: 1px solid #d1fae5; overflow: hidden; }
+    .sticker { position: absolute; width: 220px; min-height: 160px; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.12); display: flex; flex-direction: column; gap: 8px; user-select: none; cursor: grab; }
+    .sticker.dragging { cursor: grabbing; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+    .sticker-top { display: flex; align-items: center; justify-content: space-between; }
+    .sticker-palette { display: flex; gap: 5px; }
+    .sticker-color-btn { width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; }
+    .sticker-color-btn:hover { transform: scale(1.25); }
+    .sticker-color-btn.selected { border-color: rgba(0,0,0,.4); box-shadow: 0 0 0 2px rgba(255,255,255,.8); }
+    .sticker-del { width: 22px; height: 22px; background: rgba(0,0,0,.15); border: none; border-radius: 50%; color: rgba(0,0,0,.55); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sticker-del:hover { background: rgba(0,0,0,.28); }
+    .sticker-text { flex: 1; min-height: 80px; outline: none; font-size: 13px; line-height: 1.5; color: rgba(0,0,0,.75); word-break: break-word; cursor: text; user-select: text; }
+    .sticker-text:empty::before { content: attr(data-placeholder); opacity: .4; }
+    .sticker-img-btn { align-self: flex-start; padding: 4px 10px; background: rgba(0,0,0,.1); border: none; border-radius: 5px; font-size: 11px; color: rgba(0,0,0,.55); cursor: pointer; }
+    .sticker-image { width: 100%; border-radius: 6px; display: block; }
+
+    @media (max-width: 640px) {
+      .tabs-nav { padding: 0 16px; }
+      .board-wrap { padding: 16px; }
+      .board-header { flex-direction: column; }
+      .phases { flex-direction: column; min-width: 0; }
+      .phase-col { width: 100%; }
+      .pipeline-wrap { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" data-tab="board">Доска</button>
+  <button class="tab-btn" data-tab="pipeline">Пайплайн</button>
+  <button class="tab-btn" data-tab="stickers">Стикеры</button>
+</div>
+
+<!-- BOARD TAB -->
+<div class="tab-panel active" id="tab-board">
+  <div class="board-wrap">
+    <div class="board-header">
+      <div>
+        <h1>Gumroad Factory · Roadmap</h1>
+        <p>Конвейер цифровых продуктов</p>
+      </div>
+      <div class="board-progress">
+        <div class="board-progress-nums">
+          <span id="progress-done">0</span><span class="total" id="progress-total">&nbsp;/ 0</span>
+        </div>
+        <div class="board-progress-bar"><div class="board-progress-fill" id="progress-fill"></div></div>
+        <div class="board-progress-label" id="progress-label"></div>
+      </div>
+    </div>
+
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="phases" id="phases-root"></div>
+
+    <div class="notes-section">
+      <h2>Заметки</h2>
+      <div id="notes-root"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PIPELINE TAB -->
+<div class="tab-panel" id="tab-pipeline">
+  <div class="pipeline-wrap">
+    <h2>Автономный пайплайн МиМо</h2>
+    <div id="pipeline-root"></div>
+  </div>
+</div>
+
+<!-- STICKERS TAB -->
+<div class="tab-panel" id="tab-stickers">
+  <div class="stickers-wrap">
+    <div class="stickers-toolbar">
+      <button class="btn-add-sticker" id="btn-add">+ Стикер</button>
+    </div>
+    <div class="stickers-area" id="stickers-area"></div>
+  </div>
+</div>
+
+<script>
+/* ===== DATA ===== */
+const STATS = [
+  { val: '0',    lbl: 'Продуктов готово' },
+  { val: '0',    lbl: 'Опубликовано' },
+  { val: '$0',   lbl: 'Доход' },
+  { val: '10',   lbl: 'Ниш в очереди' },
+];
+
+const PHASES = [
+  { id: 'setup',      name: 'Фундамент',   status: 'done'    },
+  { id: 'scripts',    name: 'Скрипты',     status: 'active'  },
+  { id: 'skill',      name: 'Скилл МиМо',  status: 'done'    },
+  { id: 'promo',      name: 'Промоушен',   status: 'active'  },
+  { id: 'test',       name: 'Тест',        status: 'planned' },
+  { id: 'scale',      name: 'Масштаб',     status: 'planned' },
+];
+
+const TASKS = [
+  {
+    id: 'TASK-001', title: 'Инфраструктура фабрики',
+    phase: 'setup', status: 'done',
+    subtasks: [
+      { id: 's1-1', title: 'Workspace C:/Users/hramo/gumroad',     done: true },
+      { id: 's1-2', title: 'Роли агентов (mimo, lead, mechanic)',  done: true },
+      { id: 's1-3', title: 'TRENDS.md — 10 ниш в очереди',        done: true },
+      { id: 's1-4', title: 'NOTION_QUALITY.md — чеклист',         done: true },
+      { id: 's1-5', title: 'TZ.md — полное техзадание',           done: true },
+    ],
+    note: 'Workspace готов. API ключи настроены.',
+  },
+  {
+    id: 'TASK-002', title: 'API интеграции',
+    phase: 'setup', status: 'done',
+    subtasks: [
+      { id: 's2-1', title: 'Notion API ключ + корневая страница',  done: true },
+      { id: 's2-2', title: 'Gumroad API ключ',                     done: true },
+      { id: 's2-3', title: '.env с ключами',                       done: true },
+      { id: 's2-4', title: 'Тест: создание страниц и продуктов',   done: true },
+    ],
+    note: 'Оба API протестированы и работают.',
+  },
+  {
+    id: 'TASK-003', title: 'notion_create.py',
+    phase: 'scripts', status: 'backlog',
+    subtasks: [
+      { id: 's3-1', title: 'Читает spec.json',                     done: false },
+      { id: 's3-2', title: 'Создаёт страницу в Notion',            done: false },
+      { id: 's3-3', title: 'Создаёт базы данных с properties',     done: false },
+      { id: 's3-4', title: 'Добавляет sample rows',                done: false },
+      { id: 's3-5', title: 'Создаёт Welcome-страницу',             done: false },
+    ],
+    note: '',
+  },
+  {
+    id: 'TASK-004', title: 'gumroad_create.py',
+    phase: 'scripts', status: 'backlog',
+    subtasks: [
+      { id: 's4-1', title: 'Создаёт продукт (draft)',              done: false },
+      { id: 's4-2', title: 'Загружает user-guide как файл',        done: false },
+      { id: 's4-3', title: 'Устанавливает цену из spec.json',      done: false },
+    ],
+    note: '',
+  },
+  {
+    id: 'TASK-005', title: 'publish.py + set_template_url.py',
+    phase: 'scripts', status: 'backlog',
+    subtasks: [
+      { id: 's5-1', title: 'Оркестратор: notion → gumroad',       done: false },
+      { id: 's5-2', title: 'Обновление листинга после публикации', done: false },
+      { id: 's5-3', title: 'Обновление STATUS.md',                 done: false },
+    ],
+    note: '',
+  },
+  {
+    id: 'TASK-006', title: 'MIMO_SKILL.md',
+    phase: 'skill', status: 'done',
+    subtasks: [
+      { id: 's6-1', title: 'Как проектировать Notion базы',        done: true },
+      { id: 's6-2', title: 'Формула продающего листинга',          done: true },
+      { id: 's6-3', title: 'Правила самооценки A/B/C',             done: true },
+      { id: 's6-4', title: 'Autocompact после 5 продуктов',        done: true },
+    ],
+    note: 'skills/MIMO_SKILL.md + NOTION_BLOCKS.md + NOTION_QUALITY.md готовы.',
+  },
+  {
+    id: 'TASK-007', title: 'MIMO_FACTORY.md — мультиагент',
+    phase: 'skill', status: 'done',
+    subtasks: [
+      { id: 's7-1', title: 'Architect → Coder → Designer loop',   done: true },
+      { id: 's7-2', title: 'Автозапуск publish.py',               done: true },
+      { id: 's7-3', title: 'DESIGNER_SKILL.md (Pillow + GPT-2)',  done: true },
+    ],
+    note: 'Полная мультиагентная архитектура настроена. 3 режима в одной сессии.',
+  },
+  {
+    id: 'TASK-008', title: 'Pinterest pipeline',
+    phase: 'promo', status: 'in_progress',
+    subtasks: [
+      { id: 's8-1', title: 'Pinterest бизнес-аккаунт создан',     done: true },
+      { id: 's8-2', title: 'Pinterest API ключ (developers.pinterest.com)', done: false },
+      { id: 's8-3', title: 'PINTEREST_ACCESS_TOKEN → .env',       done: false },
+      { id: 's8-4', title: 'pinterest_publish.py',                done: false },
+      { id: 's8-5', title: 'pillow_pin.py (1000×1500)',           done: false },
+    ],
+    note: 'Бизнес аккаунт ✓ верный выбор. Ждём API токен.',
+  },
+  {
+    id: 'TASK-009', title: 'SEO-блог GitHub Pages',
+    phase: 'promo', status: 'in_progress',
+    subtasks: [
+      { id: 's9-1', title: 'GitHub Pages репо (RodeShop/RodeShop)', done: true },
+      { id: 's9-2', title: 'Лендинг RodeShop задеплоен',         done: true },
+      { id: 's9-3', title: 'blog_publish.py (git commit)',         done: false },
+      { id: 's9-4', title: 'МиМо генерирует blog-post.md',        done: false },
+    ],
+    note: 'https://rodeshop.github.io/RodeShop/ уже живёт.',
+  },
+  {
+    id: 'TASK-010', title: 'Первый продукт end-to-end',
+    phase: 'test', status: 'backlog',
+    subtasks: [
+      { id: 's10-1', title: 'МиМо генерирует Freelance Tracker',  done: false },
+      { id: 's10-2', title: 'publish.py — Notion + Gumroad',      done: false },
+      { id: 's10-3', title: 'Ручной шаг: Share в Notion',         done: false },
+      { id: 's10-4', title: 'Листинг живой на Gumroad',           done: false },
+    ],
+    note: '',
+  },
+  {
+    id: 'TASK-011', title: 'Gumroad профиль',
+    phase: 'test', status: 'backlog',
+    subtasks: [
+      { id: 's11-1', title: 'Имя магазина и описание',            done: false },
+      { id: 's11-2', title: 'Аватар и обложка',                   done: false },
+    ],
+    note: '',
+  },
+  {
+    id: 'TASK-012', title: 'Масштаб: МиМо работает сам',
+    phase: 'scale', status: 'backlog',
+    subtasks: [
+      { id: 's12-1', title: 'МиМо делает 5+ продуктов/день',      done: false },
+      { id: 's12-2', title: 'Pinterest пины на каждый продукт',   done: false },
+      { id: 's12-3', title: 'Анализ продаж → удвоить нишу',       done: false },
+      { id: 's12-4', title: 'Подключить PayPal через друга',      done: false },
+    ],
+    note: '',
+  },
+];
+
+const PIPELINE_STEPS = [
+  { num: '1', title: 'GENERATE', auto: true,  desc: 'МиМо читает TRENDS.md → выбирает нишу → генерирует spec.json + user-guide + listing + pinterest-pin + blog-post' },
+  { num: '2', title: 'REVIEW',   auto: true,  desc: 'МиМо самопроверка по NOTION_QUALITY.md → оценка A/B/C. Если C — возврат на GENERATE (макс 2 раза)' },
+  { num: '3', title: 'PUBLISH',  auto: true,  desc: 'python publish.py <slug> → создаёт шаблон в Notion + листинг на Gumroad (draft) → сохраняет ID' },
+  { num: '4', title: 'SHARE',    auto: false, desc: 'Ты (10 сек): Notion → Share → Publish → Allow template. Копируешь ссылку → python set_template_url.py <slug> <url>' },
+  { num: '5', title: 'PROMOTE',  auto: true,  desc: 'python promote.py <slug> → постит пин в Pinterest + коммитит статью в GitHub Pages блог' },
+  { num: '6', title: 'LOG',      auto: true,  desc: 'МиМо обновляет STATUS.md + TRENDS.md → берёт следующую нишу' },
+];
+
+const NOTES = [
+  { id: 'n1', date: '27 июн 2026', text: 'Фундамент готов. Notion API и Gumroad API протестированы. Начинаем писать скрипты.' },
+  { id: 'n2', date: '27 июн 2026', text: 'Скилл-пак МиМо готов: MIMO_SKILL + MIMO_FACTORY + NOTION_BLOCKS + DESIGNER_SKILL. Мультиагентная архитектура настроена.' },
+  { id: 'n3', date: '27 июн 2026', text: 'Pinterest: бизнес-аккаунт — правильный выбор. API доступен только для бизнес-аккаунтов. Получить токен: developers.pinterest.com → My apps → Create app → Generate access token. Нужные scope: boards:read, boards:write, pins:read, pins:write.' },
+];
+
+/* ===== TABS ===== */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ===== STATS ===== */
+(function renderStats() {
+  const bar = document.getElementById('stats-bar');
+  STATS.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'stat-card';
+    el.innerHTML = `<div class="val">${s.val}</div><div class="lbl">${s.lbl}</div>`;
+    bar.appendChild(el);
+  });
+})();
+
+/* ===== BOARD ===== */
+(function renderBoard() {
+  const phasesRoot = document.getElementById('phases-root');
+  const notesRoot  = document.getElementById('notes-root');
+  const badgeClass = { done: 'badge-done', active: 'badge-active', planned: 'badge-planned' };
+  const badgeLabel = { done: 'done', active: 'active', planned: 'planned' };
+
+  PHASES.forEach(phase => {
+    const tasks = TASKS.filter(t => t.phase === phase.id);
+    const col = document.createElement('div');
+    col.className = `phase-col phase-${phase.status}`;
+    col.innerHTML =
+      `<div class="phase-col-header">
+        <div class="phase-col-header-left">
+          <span class="phase-name">${phase.name}</span>
+          <span class="phase-badge ${badgeClass[phase.status]}">${badgeLabel[phase.status]}</span>
+        </div>
+        <span class="phase-count">${tasks.length || ''}</span>
+      </div>` +
+      (tasks.length
+        ? tasks.map(t =>
+            `<div class="task-card status-${t.status}">
+              <div class="task-id">${t.id}</div>
+              <div class="task-title">${t.title}</div>
+              <ul class="subtasks">
+                ${t.subtasks.map(s => `<li class="${s.done?'done':''}">${s.title}</li>`).join('')}
+              </ul>
+              ${t.note ? `<div class="task-note">${t.note}</div>` : ''}
+            </div>`).join('')
+        : '<div class="phase-empty">нет задач</div>'
+      );
+    phasesRoot.appendChild(col);
+  });
+
+  NOTES.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'note-card';
+    el.innerHTML = `<div class="note-date">${n.date}</div><div class="note-text">${n.text}</div>`;
+    notesRoot.appendChild(el);
+  });
+
+  const doneCnt = TASKS.filter(t => t.status === 'done').length;
+  const pct = TASKS.length ? Math.round(doneCnt / TASKS.length * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-done').textContent = doneCnt;
+  document.getElementById('progress-total').textContent = ' / ' + TASKS.length;
+  document.getElementById('progress-label').textContent = pct + '% задач выполнено';
+})();
+
+/* ===== PIPELINE ===== */
+(function renderPipeline() {
+  const root = document.getElementById('pipeline-root');
+  PIPELINE_STEPS.forEach((s, i) => {
+    if (i > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'step-arrow';
+      arrow.textContent = '↓';
+      root.appendChild(arrow);
+    }
+    const el = document.createElement('div');
+    el.className = 'pipeline-step';
+    el.innerHTML =
+      `<div class="step-num ${s.auto ? '' : 'manual'}">${s.num}</div>
+       <div class="step-body">
+         <span class="step-tag ${s.auto ? 'tag-auto' : 'tag-manual'}">${s.auto ? 'авто' : 'ручной'}</span>
+         <div class="step-title">${s.title}</div>
+         <div class="step-desc">${s.desc}</div>
+       </div>`;
+    root.appendChild(el);
+  });
+})();
+
+/* ===== STICKERS ===== */
+const STICKER_COLORS = ['#fef08a','#bbf7d0','#bfdbfe','#fecaca','#e9d5ff','#fed7aa'];
+const LS_KEY = 'gumroad_factory_stickers';
+let stickersData = [];
+let draggingEl = null;
+
+function loadData() {
+  try { stickersData = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { stickersData = []; }
+}
+function saveData() { localStorage.setItem(LS_KEY, JSON.stringify(stickersData)); }
+function getEntry(id) { return stickersData.find(s => s.id === id); }
+
+function createStickerEl(data) {
+  const area = document.getElementById('stickers-area');
+  const el = document.createElement('div');
+  el.className = 'sticker';
+  el.dataset.id = data.id;
+  el.style.cssText = `left:${data.x}px;top:${data.y}px;background:${data.color};z-index:${data.z||1}`;
+  const palette = STICKER_COLORS.map(c =>
+    `<span class="sticker-color-btn${data.color===c?' selected':''}" style="background:${c}" data-color="${c}"></span>`
+  ).join('');
+  el.innerHTML =
+    `<div class="sticker-top">
+      <div class="sticker-palette">${palette}</div>
+      <button class="sticker-del">×</button>
+    </div>
+    <div class="sticker-text" contenteditable="true" data-placeholder="Заметка…">${data.text||''}</div>
+    ${data.image?`<img class="sticker-image" src="${data.image}" alt="">`:''}
+    <button class="sticker-img-btn">Фото</button>`;
+  const fileInput = document.createElement('input');
+  fileInput.type='file'; fileInput.accept='image/*'; fileInput.style.display='none';
+  el.appendChild(fileInput);
+  el.querySelector('.sticker-del').addEventListener('click', e => {
+    e.stopPropagation();
+    stickersData = stickersData.filter(s => s.id !== data.id); saveData(); el.remove();
+  });
+  el.querySelectorAll('.sticker-color-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const c = btn.dataset.color; el.style.background = c;
+      el.querySelectorAll('.sticker-color-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      const entry = getEntry(data.id); if (entry) { entry.color = c; saveData(); }
+    });
+  });
+  const textEl = el.querySelector('.sticker-text');
+  textEl.addEventListener('input', () => { const e=getEntry(data.id); if(e){e.text=textEl.innerHTML;saveData();} });
+  textEl.addEventListener('mousedown', e => e.stopPropagation());
+  el.querySelector('.sticker-img-btn').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const entry=getEntry(data.id); if(entry){entry.image=ev.target.result;saveData();}
+      let img=el.querySelector('.sticker-image');
+      if(!img){img=document.createElement('img');img.className='sticker-image';img.alt='';el.querySelector('.sticker-img-btn').before(img);}
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file); fileInput.value='';
+  });
+  el.addEventListener('mousedown', e => {
+    if(e.target.closest('.sticker-del,.sticker-color-btn,.sticker-img-btn,.sticker-text,input')) return;
+    e.preventDefault(); draggingEl=el; el.classList.add('dragging');
+    const z=Date.now(); el.style.zIndex=z; const entry=getEntry(data.id); if(entry) entry.z=z;
+    const areaRect=area.getBoundingClientRect(); const elRect=el.getBoundingClientRect();
+    const offX=e.clientX-elRect.left; const offY=e.clientY-elRect.top;
+    function onMove(ev){
+      const x=Math.max(0,Math.min(ev.clientX-areaRect.left-offX,areaRect.width-el.offsetWidth));
+      const y=Math.max(0,Math.min(ev.clientY-areaRect.top-offY,areaRect.height-el.offsetHeight));
+      el.style.left=x+'px'; el.style.top=y+'px';
+    }
+    function onUp(){
+      el.classList.remove('dragging'); draggingEl=null;
+      const entry=getEntry(data.id); if(entry){entry.x=parseFloat(el.style.left);entry.y=parseFloat(el.style.top);saveData();}
+      document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp);
+    }
+    document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
+  });
+  area.appendChild(el); return el;
+}
+
+document.getElementById('btn-add').addEventListener('click', () => {
+  const area=document.getElementById('stickers-area');
+  const id='sticker-'+Date.now();
+  const x=Math.max(20,Math.random()*Math.max(0,area.offsetWidth-240));
+  const y=Math.max(20,Math.random()*Math.max(0,area.offsetHeight-180));
+  const data={id,x,y,z:Date.now(),color:STICKER_COLORS[0],text:'',image:null};
+  stickersData.push(data); saveData();
+  const el=createStickerEl(data); el.querySelector('.sticker-text').focus();
+});
+
+loadData(); stickersData.forEach(d => createStickerEl(d));
+</script>
+</body>
+</html>

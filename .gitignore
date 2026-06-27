@@ -1,0 +1,17 @@
+# Секреты — никогда в git
+.env
+.env.local
+
+# Не пушить готовые продукты (это коммерческий контент)
+products/ready/
+products/published/
+products/draft/
+
+# Листинги (коммерческая ценность)
+listings/*.md
+!listings/TEMPLATE.md
+
+# Системное
+.DS_Store
+Thumbs.db
+*.tmp
