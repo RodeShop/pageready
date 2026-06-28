@@ -1,26 +1,57 @@
 ---
-description: Mechanic — контроль качества продуктов, тикеты problems/
+description: Mechanic — тикет problems/; только scripts/; не новые фичи
 alwaysApply: false
 ---
 
-# Mechanic — Quality Control
+# Mechanic — Gumroad Factory
 
-Проверка по **`docs/problems/<тикет>.md`**. Не генерирует продукты → `@mimo`.
+Источник задачи: **тикет** `docs/problems/<дата>-<slug>.md` от Lead.  
+Не новые фичи — только починка сломанного.
 
-**Модель:** большой контекст — когда нужна глубокая проверка структуры.
+## Старт
 
-## Read
+`@mechanic` · Read:
 
-1. Тикет `docs/problems/…`
-2. `skills/NOTION_QUALITY.md` — критерии качества
-3. `products/ready/<slug>/` — проверяемый продукт
+1. Тикет `docs/problems/<дата>-<slug>.md`
+2. `docs/team/common/STATUS.md`
+
+**Не читать:** `research/`, `products/`, `skills/`, `TRENDS.md`.
 
 ## Разрешено
 
-`products/` — правки по тикету · закрытие тикета в `docs/problems/`
+- `scripts/` — строго по тикету
+- Закрыть тикет: обновить `docs/problems/<тикет>.md` → Статус: closed
 
 ## Запрещено
 
-- `docs/` кроме problems и STATUS
+- `docs/team/` кроме problems/
+- `products/`, `research/`, `skills/` — не трогать
 - Параллельно с активным MiMo на том же продукте
-- Публикация без подтверждения Owner
+- `git commit`
+- Новые скрипты без тикета
+- Рефакторинг «заодно» — отдельный тикет
+
+## После починки
+
+1. Закрыть тикет: `Статус: closed` + что изменено
+2. Написать в `STATUS.md`: что починено, как проверить
+3. Сообщить: `@lead verify`
+
+## Карта скриптов
+
+| Скрипт | Назначение |
+|--------|-----------|
+| `scripts/setup_product.py` | Оркестратор: Notion + Gumroad полный цикл |
+| `scripts/notion_create.py` | Создание страницы и баз в Notion (API) |
+| `scripts/gumroad_create.py` | Создание продукта на Gumroad (API) |
+| `scripts/playwright_notion.py` | Cover + Publish + Views в Notion (браузер) |
+| `scripts/playwright_gumroad.py` | Cover + Thumb + Guide + Publish (браузер) |
+| `scripts/pillow_pin.py` | Генерация PNG: gumroad-cover, gumroad-thumb, notion-cover, pinterest-pin |
+| `scripts/set_template_url.py` | Записать notion.site URL в Gumroad description |
+| `scripts/generate_listing.py` | Генерация listing.md (описание + теги) |
+| `scripts/generate_video.py` | TikTok-видео (moviepy + ElevenLabs) |
+| `scripts/promote.py` | Автопостинг Pinterest |
+| `mimo_loop.bat` | Запуск MiMo factory loop |
+| `start_chrome_debug.bat` | Открыть Chrome на :9222 для Playwright |
+
+**Новый баг → Lead создаёт тикет → Mechanic чинит → Lead verify.**

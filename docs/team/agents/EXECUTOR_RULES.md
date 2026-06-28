@@ -10,6 +10,7 @@
 2. `docs/team/agents/EXECUTOR_RULES.md` — этот файл
 3. `research/TRENDS.md` — тренды и очередь
 4. `docs/team/common/STATUS.md` — текущий снимок
+5. `docs/team/common/SCRIPTS_MAP.md` — карта скриптов **→ перед правкой любого скрипта**
 
 ---
 
@@ -80,7 +81,13 @@ listings/<slug>.md
 
 ## Verify перед ready/
 
-Чеклист из `skills/NOTION_QUALITY.md` — все пункты зелёные.
+**HARD BLOCK — не запускай setup_product.py если:**
+- `spec.json` содержит менее 5 баз данных → вернись, доработай
+- Менее 2 формул → добавь
+- Менее 10 sample_rows в главной базе → добавь
+- Price в spec.json не 19 и не 24 → исправь
+
+Чеклист из `skills/MIMO_SKILL.md` секция "Verify" — все пункты зелёные.
 
 ---
 

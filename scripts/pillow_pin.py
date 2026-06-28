@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-pillow_pin.py — Generates Pinterest pin (1000x1500) and Gumroad thumbnail (1600x900)
+pillow_pin.py — Direction D: System Cards (solid bg, white cards, no emoji)
+Outputs: gumroad-thumb.png (1600x900), pinterest-pin.png (1000x1500), notion-cover.png (3000x1200)
 Usage: python scripts/pillow_pin.py <slug>
 """
 
@@ -9,18 +10,22 @@ import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
 
-# Color schemes keyed by cover_color in spec.json
-SCHEMES = {
-    'green':  {'bg1': (240,253,244), 'bg2': (220,252,231), 'accent': (5,150,105),  'dark': (6,95,70)},
-    'yellow': {'bg1': (254,249,195), 'bg2': (254,240,138), 'accent': (202,138,4),  'dark': (133,77,14)},
-    'purple': {'bg1': (237,233,254), 'bg2': (221,214,254), 'accent': (124,58,237), 'dark': (91,33,182)},
-    'blue':   {'bg1': (239,246,255), 'bg2': (219,234,254), 'accent': (37,99,235),  'dark': (29,78,216)},
-    'orange': {'bg1': (255,247,237), 'bg2': (255,237,213), 'accent': (234,88,12),  'dark': (154,52,18)},
-    'pink':   {'bg1': (253,242,248), 'bg2': (252,231,243), 'accent': (219,39,119), 'dark': (157,23,77)},
-}
-DEFAULT_SCHEME = SCHEMES['green']
+BG     = (238, 241, 245)   # #eef1f5
+INK    = (18, 18, 18)      # #121212
+MUTED  = (100, 116, 139)   # #64748b
+CARD   = (255, 255, 255)
+SHADOW = (210, 215, 222)
 
-# Font candidates (Windows → Linux → macOS)
+SCHEMES = {
+    'green':  (5, 150, 105),
+    'yellow': (202, 138, 4),
+    'purple': (124, 58, 237),
+    'blue':   (37, 99, 235),
+    'orange': (234, 88, 12),
+    'pink':   (219, 39, 119),
+}
+DEFAULT_ACCENT = SCHEMES['blue']
+
 BOLD_FONTS = [
     'C:/Windows/Fonts/arialbd.ttf',
     'C:/Windows/Fonts/segoeuib.ttf',
@@ -35,11 +40,6 @@ REG_FONTS = [
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
 ]
-EMOJI_FONTS = [
-    'C:/Windows/Fonts/seguiemj.ttf',
-    'C:/Windows/Fonts/segoe ui emoji.ttf',
-    '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
-]
 
 
 def load_font(candidates, size):
@@ -52,30 +52,16 @@ def load_font(candidates, size):
     return ImageFont.load_default()
 
 
-def gradient(width, height, c1, c2):
-    img = Image.new('RGB', (width, height))
-    draw = ImageDraw.Draw(img)
-    for y in range(height):
-        t = y / height
-        r = int(c1[0] + (c2[0] - c1[0]) * t)
-        g = int(c1[1] + (c2[1] - c1[1]) * t)
-        b = int(c1[2] + (c2[2] - c1[2]) * t)
-        draw.line([(0, y), (width - 1, y)], fill=(r, g, b))
-    return img
-
-
-def centered_text(draw, text, y, width, font, color, max_width=None, line_height=None):
-    """Draw centered text, wrapping if needed. Returns bottom y."""
-    if max_width is None:
-        max_width = width - 80
-
+def wrap_lines(text, font, max_width):
     words = text.split()
-    lines = []
-    current = ''
+    lines, current = [], ''
     for word in words:
         test = (current + ' ' + word).strip()
-        bbox = font.getbbox(test)
-        if bbox[2] - bbox[0] <= max_width:
+        try:
+            w = font.getbbox(test)[2] - font.getbbox(test)[0]
+        except Exception:
+            w = len(test) * 8
+        if w <= max_width:
             current = test
         else:
             if current:
@@ -83,183 +69,219 @@ def centered_text(draw, text, y, width, font, color, max_width=None, line_height
             current = word
     if current:
         lines.append(current)
+    return lines or [text]
 
-    if line_height is None:
-        bbox = font.getbbox('Ag')
-        line_height = int((bbox[3] - bbox[1]) * 1.3)
 
-    for line in lines:
-        bbox = font.getbbox(line)
-        w = bbox[2] - bbox[0]
-        x = (width - w) // 2
-        draw.text((x, y), line, font=font, fill=color)
-        y += line_height
+def lh(font):
+    try:
+        bb = font.getbbox('Ag')
+        return int((bb[3] - bb[1]) * 1.35)
+    except Exception:
+        return 20
 
+
+def draw_centered(draw, text, y, cx, font, color, max_width):
+    """Centered wrapped text. Returns y after last line."""
+    for line in wrap_lines(text, font, max_width):
+        try:
+            w = font.getbbox(line)[2] - font.getbbox(line)[0]
+        except Exception:
+            w = len(line) * 8
+        draw.text((cx - w // 2, y), line, font=font, fill=color)
+        y += lh(font)
     return y
 
 
-def make_pin(spec, out_path):
-    """1000 x 1500 Pinterest pin."""
-    W, H = 1000, 1500
-    scheme = SCHEMES.get(spec.get('cover_color', 'green'), DEFAULT_SCHEME)
+def draw_card(draw, x, y, w, h, text, font):
+    """White card with shadow, DB name centered."""
+    draw.rounded_rectangle([(x + 3, y + 4), (x + w + 3, y + h + 4)], radius=12, fill=SHADOW)
+    draw.rounded_rectangle([(x, y), (x + w, y + h)], radius=12, fill=CARD)
+    lines = wrap_lines(text, font, w - 40)
+    total_h = len(lines) * lh(font)
+    ty = y + (h - total_h) // 2
+    for line in lines:
+        try:
+            lw_ = font.getbbox(line)[2] - font.getbbox(line)[0]
+        except Exception:
+            lw_ = len(line) * 8
+        draw.text((x + (w - lw_) // 2, ty), line, font=font, fill=INK)
+        ty += lh(font)
 
-    img = gradient(W, H, scheme['bg1'], scheme['bg2'])
+
+def make_thumb(spec, out_path):
+    """1600 × 900 Gumroad thumbnail — Direction D."""
+    W, H = 1600, 900
+    accent = SCHEMES.get(spec.get('cover_color', ''), DEFAULT_ACCENT)
+    dbs = [db['name'] for db in spec.get('databases', [])[:3]]
+    while len(dbs) < 3:
+        dbs.append('Module')
+
+    img = Image.new('RGB', (W, H), BG)
     draw = ImageDraw.Draw(img)
+    cx = W // 2
 
-    # Accent bar at top
-    draw.rectangle([(0, 0), (W, 6)], fill=scheme['accent'])
+    font_title = load_font(BOLD_FONTS, 60)
+    font_tag   = load_font(REG_FONTS,  30)
+    font_card  = load_font(BOLD_FONTS, 28)
+    font_brand = load_font(BOLD_FONTS, 30)
 
-    # "NOTION TEMPLATE" label
-    font_label = load_font(BOLD_FONTS, 28)
-    label = 'NOTION TEMPLATE'
-    bbox = font_label.getbbox(label)
-    lw = bbox[2] - bbox[0]
-    draw.text(((W - lw) // 2, 60), label, font=font_label, fill=scheme['accent'])
+    y = 58
+    y = draw_centered(draw, spec.get('title', 'Notion Template'), y, cx, font_title, INK, W - 200)
 
-    # Emoji (large, centered)
-    emoji = spec.get('emoji', '📋')
-    font_emoji = load_font(EMOJI_FONTS, 200)
-    try:
-        bbox = font_emoji.getbbox(emoji)
-        ew = bbox[2] - bbox[0]
-        draw.text(((W - ew) // 2, 120), emoji, font=font_emoji, fill=(0, 0, 0))
-        emoji_bottom = 340
-    except Exception:
-        # fallback: draw placeholder circle
-        cx, cy, r = W // 2, 230, 90
-        draw.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=scheme['accent'])
-        emoji_bottom = 340
+    y += 14
+    draw.rectangle([(cx - 56, y), (cx + 56, y + 4)], fill=accent)
+    y += 18
 
-    # Divider line
-    draw.rectangle([(W // 2 - 40, emoji_bottom + 20), (W // 2 + 40, emoji_bottom + 24)],
-                   fill=scheme['accent'])
-
-    # Title
-    font_title = load_font(BOLD_FONTS, 72)
-    title = spec.get('title', 'Notion Template')
-    y = centered_text(draw, title, emoji_bottom + 60, W, font_title,
-                      color=(15, 23, 42), max_width=860)
-
-    # Audience
-    font_sub = load_font(REG_FONTS, 38)
-    audience = f'for {spec.get("target_audience", "Professionals")}'
-    y = centered_text(draw, audience, y + 16, W, font_sub,
-                      color=(71, 85, 105), max_width=800)
-
-    # Tagline
     tagline = spec.get('tagline', '')
     if tagline:
-        font_tag = load_font(REG_FONTS, 34)
-        y = centered_text(draw, tagline, y + 30, W, font_tag,
-                          color=(100, 116, 139), max_width=780)
+        y = draw_centered(draw, tagline, y, cx, font_tag, MUTED, W - 320)
 
-    # Bottom section
-    bottom_y = H - 220
-    draw.rectangle([(0, bottom_y), (W, H)], fill=scheme['accent'])
+    card_w, card_h = 440, 200
+    gap = 30
+    total = 3 * card_w + 2 * gap
+    card_x0 = (W - total) // 2
+    card_y = max(y + 50, 345)
 
-    font_brand = load_font(BOLD_FONTS, 48)
-    font_price = load_font(BOLD_FONTS, 44)
-    font_url   = load_font(REG_FONTS,  30)
+    for i, db in enumerate(dbs):
+        draw_card(draw, card_x0 + i * (card_w + gap), card_y, card_w, card_h, db, font_card)
 
-    # Brand name
-    brand = 'RodeShop'
-    bbox = font_brand.getbbox(brand)
-    bw = bbox[2] - bbox[0]
-    draw.text(((W - bw) // 2, bottom_y + 28), brand, font=font_brand, fill=(255, 255, 255))
+    brand_text = f'RodeShop  ·  ${spec.get("price", 19)}'
+    try:
+        bw = font_brand.getbbox(brand_text)[2] - font_brand.getbbox(brand_text)[0]
+    except Exception:
+        bw = 200
+    draw.text((cx - bw // 2, H - 62), brand_text, font=font_brand, fill=accent)
 
-    # Price
-    price_text = f'From ${spec.get("price", 29)}'
-    bbox = font_price.getbbox(price_text)
-    pw = bbox[2] - bbox[0]
-    draw.text(((W - pw) // 2, bottom_y + 90), price_text, font=font_price, fill=(255, 255, 255))
+    img.save(out_path, 'PNG', optimize=True)
+    print(f'  Gumroad thumbnail saved: {out_path}')
 
-    # URL
-    url_text = 'rodeshop.github.io/pageready'
-    bbox = font_url.getbbox(url_text)
-    uw = bbox[2] - bbox[0]
-    draw.text(((W - uw) // 2, bottom_y + 154), url_text, font=font_url,
-              fill=(255, 255, 255, 180))
+
+def make_pin(spec, out_path):
+    """1000 × 1500 Pinterest pin — Direction D."""
+    W, H = 1000, 1500
+    accent = SCHEMES.get(spec.get('cover_color', ''), DEFAULT_ACCENT)
+    dbs = [db['name'] for db in spec.get('databases', [])[:3]]
+    while len(dbs) < 3:
+        dbs.append('Module')
+
+    img = Image.new('RGB', (W, H), BG)
+    draw = ImageDraw.Draw(img)
+    cx = W // 2
+
+    font_title = load_font(BOLD_FONTS, 64)
+    font_tag   = load_font(REG_FONTS,  34)
+    font_card  = load_font(BOLD_FONTS, 30)
+    font_brand = load_font(BOLD_FONTS, 34)
+
+    y = 80
+    y = draw_centered(draw, spec.get('title', 'Notion Template'), y, cx, font_title, INK, W - 120)
+
+    y += 20
+    draw.rectangle([(cx - 56, y), (cx + 56, y + 4)], fill=accent)
+    y += 24
+
+    tagline = spec.get('tagline', '')
+    if tagline:
+        y = draw_centered(draw, tagline, y, cx, font_tag, MUTED, W - 160)
+
+    card_w, card_h = 820, 190
+    gap = 22
+    card_x = (W - card_w) // 2
+    card_y = max(y + 60, 500)
+
+    for i, db in enumerate(dbs):
+        draw_card(draw, card_x, card_y + i * (card_h + gap), card_w, card_h, db, font_card)
+
+    brand_text = f'RodeShop  ·  ${spec.get("price", 19)}'
+    try:
+        bw = font_brand.getbbox(brand_text)[2] - font_brand.getbbox(brand_text)[0]
+    except Exception:
+        bw = 220
+    draw.text((cx - bw // 2, H - 96), brand_text, font=font_brand, fill=accent)
 
     img.save(out_path, 'PNG', optimize=True)
     print(f'  Pinterest pin saved: {out_path}')
 
 
-def make_thumb(spec, out_path):
-    """1600 x 900 Gumroad thumbnail."""
-    W, H = 1600, 900
-    scheme = SCHEMES.get(spec.get('cover_color', 'green'), DEFAULT_SCHEME)
+def make_notion_cover(spec, out_path):
+    """3000 × 1200 Notion page cover — strip-only, NO cards.
 
-    img = gradient(W, H, scheme['bg1'], scheme['bg2'])
+    Notion's cover strip is ~250-320px tall on screen (object-fit:cover scales
+    the PNG to fill viewport width). A full Direction D layout with 250px cards
+    fills the entire visible strip, looks giant, and duplicates the title + DB
+    list that Notion renders below the cover anyway.
+
+    Instead: text-only content confined to the vertical safe zone y=480..720
+    and horizontal safe zone x=900..2100 (center 1200px). Everything outside
+    is plain #eef1f5 — clean crop on any viewport.
+
+    Gumroad thumb and Pinterest pin keep the full Direction D with cards.
+    """
+    W, H = 3000, 1200
+    accent = SCHEMES.get(spec.get('cover_color', ''), DEFAULT_ACCENT)
+
+    img = Image.new('RGB', (W, H), BG)
     draw = ImageDraw.Draw(img)
 
-    # Left half — main content
-    cx = W // 2
+    # Safe zone dimensions
+    CX     = W // 2        # 1500 — horizontal center
+    SY_TOP = 480
+    SY_BOT = 720
+    SY_H   = SY_BOT - SY_TOP   # 240px
+    SW     = 1200               # horizontal zone width (x=900..2100)
 
-    # Accent bar left
-    draw.rectangle([(0, 0), (8, H)], fill=scheme['accent'])
+    font_title = load_font(BOLD_FONTS, 48)
+    font_tag   = load_font(REG_FONTS,  22)
+    font_brand = load_font(BOLD_FONTS, 18)
 
-    # Emoji
-    emoji = spec.get('emoji', '📋')
-    font_emoji = load_font(EMOJI_FONTS, 160)
-    try:
-        bbox = font_emoji.getbbox(emoji)
-        ew = bbox[2] - bbox[0]
-        draw.text(((cx - ew) // 2, 80), emoji, font=font_emoji, fill=(0, 0, 0))
-    except Exception:
-        r = 70
-        draw.ellipse([(80, 80), (80 + r*2, 80 + r*2)], fill=scheme['accent'])
+    title   = spec.get('title', 'Notion Template')
+    tagline = spec.get('tagline', '')
 
-    # Title
-    font_title = load_font(BOLD_FONTS, 72)
-    y = centered_text(draw, spec.get('title', 'Notion Template'), 280, cx,
-                      font_title, color=(15, 23, 42), max_width=cx - 60)
+    title_lines = wrap_lines(title, font_title, SW - 40)
+    tag_lines   = wrap_lines(tagline, font_tag, SW - 40) if tagline else []
 
-    # Audience
-    font_aud = load_font(REG_FONTS, 38)
-    y = centered_text(draw, f'for {spec.get("target_audience", "")}', y + 14, cx,
-                      font_aud, color=(71, 85, 105), max_width=cx - 60)
+    title_h  = len(title_lines) * lh(font_title)
+    tag_h    = (8 + len(tag_lines) * lh(font_tag)) if tag_lines else 0
+    accent_h = 14 + 3 + 6 + lh(font_brand)   # gap + line + gap + brand
+    total_h  = title_h + tag_h + accent_h
 
-    # Price badge
-    price_text = f'${spec.get("price", 29)}'
-    font_price = load_font(BOLD_FONTS, 56)
-    bbox = font_price.getbbox(price_text)
-    pw, ph = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    pad = 20
-    px = (cx - pw) // 2
-    py = H - 140
-    draw.rounded_rectangle([(px - pad, py - pad), (px + pw + pad, py + ph + pad)],
-                            radius=12, fill=scheme['accent'])
-    draw.text((px, py), price_text, font=font_price, fill=(255, 255, 255))
+    ty = SY_TOP + (SY_H - total_h) // 2
 
-    # Right half — feature list
-    font_feat_title = load_font(BOLD_FONTS, 32)
-    font_feat       = load_font(REG_FONTS,  30)
+    # Title — centered in safe zone
+    for line in title_lines:
+        try:
+            w = font_title.getbbox(line)[2] - font_title.getbbox(line)[0]
+        except Exception:
+            w = len(line) * 14
+        draw.text((CX - w // 2, ty), line, font=font_title, fill=INK)
+        ty += lh(font_title)
 
-    draw.text((cx + 60, 80), 'What\'s inside:', font=font_feat_title, fill=scheme['dark'])
+    # Tagline
+    if tag_lines:
+        ty += 8
+        for line in tag_lines:
+            try:
+                w = font_tag.getbbox(line)[2] - font_tag.getbbox(line)[0]
+            except Exception:
+                w = len(line) * 8
+            draw.text((CX - w // 2, ty), line, font=font_tag, fill=MUTED)
+            ty += lh(font_tag)
 
-    databases = spec.get('databases', [])
-    features = [f'{db.get("emoji","📋")} {db["name"]}' for db in databases[:4]]
-    if not features:
-        features = ['📊 Linked databases', '📝 Sample data included',
-                    '👋 Setup guide', '🎯 Ready to use']
+    # Accent rule
+    ty += 14
+    draw.rectangle([(CX - 40, ty), (CX + 40, ty + 3)], fill=accent)
+    ty += 9
 
-    fy = 140
-    for feat in features:
-        draw.text((cx + 60, fy), feat, font=font_feat, fill=(30, 41, 59))
-        fy += 52
-
-    # Divider between halves
-    draw.rectangle([(cx - 1, 60), (cx + 1, H - 60)], fill=scheme['accent'])
-
-    # Brand bottom-right
-    font_brand = load_font(BOLD_FONTS, 34)
+    # Brand
     brand = 'RodeShop'
-    bbox = font_brand.getbbox(brand)
-    draw.text((W - bbox[2] - bbox[0] - 40, H - 60), brand,
-              font=font_brand, fill=scheme['accent'])
+    try:
+        bw = font_brand.getbbox(brand)[2] - font_brand.getbbox(brand)[0]
+    except Exception:
+        bw = len(brand) * 8
+    draw.text((CX - bw // 2, ty), brand, font=font_brand, fill=accent)
 
-    img.save(out_path, 'PNG', optimize=True)
-    print(f'  Gumroad thumbnail saved: {out_path}')
+    img.save(out_path, 'PNG', compress_level=1)
+    print(f'  Notion cover saved: {out_path}')
 
 
 def main():
@@ -269,8 +291,7 @@ def main():
 
     slug = sys.argv[1]
 
-    # Try ready/ first, fall back to draft/
-    for base in [f'products/ready/{slug}', f'products/draft/{slug}']:
+    for base in [f'products/draft/{slug}', f'products/ready/{slug}']:
         spec_path = f'{base}/spec.json'
         if os.path.exists(spec_path):
             out_dir = base
@@ -283,8 +304,9 @@ def main():
         spec = json.load(f)
 
     print(f'\nGenerating images for: {spec["title"]}')
-    make_pin(spec,   f'{out_dir}/pinterest-pin.png')
-    make_thumb(spec, f'{out_dir}/gumroad-thumb.png')
+    make_thumb(spec,         f'{out_dir}/gumroad-thumb.png')
+    make_pin(spec,           f'{out_dir}/pinterest-pin.png')
+    make_notion_cover(spec,  f'{out_dir}/notion-cover.png')
     print('Done.')
 
 

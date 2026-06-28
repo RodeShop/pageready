@@ -1,0 +1,36 @@
+﻿# Секреты
+.env
+.env.*
+
+# Тяжёлое / генерируемое — не индексировать
+assets/
+products/
+listings/
+debug_screenshots/
+
+# MiMo deps
+.mimocode/node_modules/
+
+# Runtime
+.auth/
+.chrome-factory/
+*.log
+__pycache__/
+.venv/
+venv/
+
+# Медиа (PNG читать только по явному пути)
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.webp
+**/*.gif
+**/*.mp4
+**/*.mov
+
+# Архив задач — по запросу
+docs/team/archive/
+
+# Локальные артефакты
+STOP
+python

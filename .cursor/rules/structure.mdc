@@ -1,0 +1,79 @@
+---
+description: Structure — Gumroad Factory · папки по назначению · Lead enforces
+alwaysApply: true
+---
+
+# Structure — Gumroad Factory
+
+**Хранитель:** Lead. Любой новый файл/папка — только с согласия Lead.
+
+## Принципы
+
+| Правило | Что это значит |
+|---------|---------------|
+| **Один файл = одна тема** | Нельзя мешать несвязанный контент в один файл |
+| **Папка = смысловая группа** | Файлы группируются по назначению, не по типу |
+| **Имя файла говорит за себя** | `notion-agency-client-os.md` — не `product2.md`, `stuff.json` |
+| **Плоская иерархия** | Не более 3 уровней вложенности без крайней нужды |
+
+## Лимиты файлов
+
+| Тип | Норма | ⚠ Предупреждение | Действие |
+|-----|-------|-----------------|---------|
+| Hot-doc (STATUS, TASK) | ≤ 80 | > 120 | Архивировать лишнее |
+| Python скрипт | ≤ 200 | > 350 | Разбить на модули |
+| user-guide.md | ≥ 1200 слов | < 800 | Доработать — Lead возвращает |
+| spec.json | без лимита | — | Генерируется MiMo |
+
+**При превышении ⚠:** Lead пишет в STATUS: `⚠ файл X — N строк, рекомендуется разбить`. Задачу не прерывать.
+
+## Канон папок
+
+```
+gumroad/
+  PROJECT_MAP.md          ← читать первым (≤150 строк)
+  ROADMAP.md              ← план развития
+  research/
+    TRENDS.md             ← очередь ниш (Lead пишет)
+  products/
+    queue/<slug>.md       ← ниши в очереди (Lead создаёт)
+    draft/<slug>/         ← MiMo/Coder генерирует
+      spec.json
+      notion_result.json
+      gumroad_result.json
+      quality-report.md
+      user-guide.md
+      listing.md
+      gumroad-cover.png   ← 1920×1080
+      gumroad-thumb.png   ← 1200×1200 (square)
+      notion-cover.png    ← 3000×1200 strip-only
+    ready/<slug>/         ← Lead проверил, ждёт Owner
+    published/<slug>/     ← Owner опубликовал
+  skills/                 ← стандарты качества (Lead обновляет)
+  docs/
+    team/
+      active/TASK.md      ← текущая задача (Lead пишет, ≤60 строк)
+      common/STATUS.md    ← снимок состояния (≤80 строк)
+      common/TASKS.md     ← очередь задач
+      archive/            ← закрытые TASK-<id>_ARCHIVE.md
+    problems/             ← тикеты Mechanic
+  scripts/                ← Python скрипты (Coder/Mechanic)
+  assets/
+    gumroad-variants/     ← варианты дизайна (Owner выбирает)
+  listings/               ← листинги Gumroad (MiMo генерирует)
+  .mimocode/              ← инструкции MiMo (Lead согласует изменения)
+```
+
+## Запрещено
+
+- Класть файлы продуктов вне `products/`
+- Новые папки в корне без записи в `PROJECT_MAP.md`
+- `utils.md`, `misc.py`, `temp/` — файлы «для всего»
+- Дублировать информацию в двух файлах
+- Скрины и png/jpg в корне — только `assets/`
+
+## Ответственность Lead
+
+- Проверять структуру при каждом verify
+- Если MiMo/Coder создал файл не там — исправить в следующем TASK
+- Обновлять `PROJECT_MAP.md` при любом изменении структуры

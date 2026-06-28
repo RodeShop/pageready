@@ -73,6 +73,10 @@ def build_property_schema(prop):
         return {'phone_number': {}}
     if t == 'status':
         return {'status': {}}
+    if t == 'formula':
+        return {'formula': {'expression': prop.get('expression', 'prop("Name")')}}
+    if t in ('relation', 'rollup'):
+        return None  # handled in later passes
     return {'rich_text': {}}
 
 
@@ -176,9 +180,11 @@ def create_product_page(spec):
 def create_database(parent_id, db_spec):
     props = {}
     for prop in db_spec.get('properties', []):
-        if prop['type'] == 'relation':
-            continue  # relations added in second pass
-        props[prop['name']] = build_property_schema(prop)
+        if prop['type'] in ('relation', 'rollup'):
+            continue  # added in later passes
+        schema = build_property_schema(prop)
+        if schema:
+            props[prop['name']] = schema
 
     data = {
         'parent': {'type': 'page_id', 'page_id': parent_id},
@@ -214,22 +220,90 @@ def add_relations(db_spec, db_id, db_map):
             }
         }
         api('patch', f'/databases/{db_id}', data)
-        print(f'  Relation "{prop["name"]}" → "{related_name}"')
+        print(f'  Relation "{prop["name"]}" -> "{related_name}"')
+
+
+def add_rollups(db_spec, db_id):
+    rollups = [p for p in db_spec.get('properties', []) if p['type'] == 'rollup']
+    if not rollups:
+        return
+    props = {}
+    for prop in rollups:
+        props[prop['name']] = {
+            'rollup': {
+                'relation_property_name': prop['relation_property'],
+                'rollup_property_name':   prop['rollup_property'],
+                'function':               prop.get('function', 'sum'),
+            }
+        }
+    api('patch', f'/databases/{db_id}', {'properties': props})
+    print(f'  Added {len(rollups)} rollup(s)')
+
+
+def title_property_name(prop_specs):
+    for p in prop_specs:
+        if p['type'] == 'title':
+            return p['name']
+    return 'Name'
+
+
+def row_key(row, prop_specs):
+    title_name = title_property_name(prop_specs)
+    return row.get(title_name, row.get('Name', ''))
 
 
 def add_sample_rows(db_id, rows, prop_specs):
+    """Create sample rows, skipping relation fields. Returns {row_name: page_id} for linking."""
     prop_map = {p['name']: p for p in prop_specs}
+    page_ids = {}
     for row in rows:
         props = {}
         for key, value in row.items():
             spec = prop_map.get(key)
-            if not spec or spec['type'] == 'relation':
+            if not spec or spec['type'] in ('relation', 'rollup'):
                 continue
             val = build_property_value(spec, value)
             if val is not None:
                 props[key] = val
-        api('post', '/pages', {'parent': {'database_id': db_id}, 'properties': props})
+        result = api('post', '/pages', {'parent': {'database_id': db_id}, 'properties': props})
+        name = row_key(row, prop_specs)
+        if name:
+            page_ids[name] = result['id']
     print(f'  Added {len(rows)} sample rows')
+    return page_ids
+
+
+def link_sample_rows(rows, prop_specs, row_page_ids, all_db_page_ids):
+    """Second pass: patch relation fields on sample rows using collected page_ids."""
+    prop_map = {p['name']: p for p in prop_specs}
+    relation_props = [p for p in prop_specs if p['type'] == 'relation']
+    if not relation_props:
+        return
+
+    linked = 0
+    for row in rows:
+        page_id = row_page_ids.get(row_key(row, prop_specs))
+        if not page_id:
+            continue
+        props = {}
+        for rel_prop in relation_props:
+            rel_name = rel_prop['name']
+            related_db = rel_prop.get('related_db', '')
+            value = row.get(rel_name)
+            if not value:
+                continue
+            # value is a row name (string) or list of names
+            names = [value] if isinstance(value, str) else value
+            page_ids_for_rel = all_db_page_ids.get(related_db, {})
+            ids = [page_ids_for_rel[n] for n in names if n in page_ids_for_rel]
+            if ids:
+                props[rel_name] = {'relation': [{'id': pid} for pid in ids]}
+        if props:
+            api('patch', f'/pages/{page_id}', {'properties': props})
+            linked += 1
+
+    if linked:
+        print(f'  Linked {linked} rows via relations')
 
 
 def create_welcome_page(parent_id, spec):
@@ -258,44 +332,67 @@ def create_welcome_page(parent_id, spec):
 
 # ── Main ────────────────────────────────────────────────────────────────────
 
+def find_spec_path(slug):
+    """Check draft/ first, then ready/ — supports both new products and upgrades."""
+    for base in [f'products/draft/{slug}', f'products/ready/{slug}']:
+        path = f'{base}/spec.json'
+        if os.path.exists(path):
+            return path, base
+    return None, None
+
+
 def main():
     if len(sys.argv) < 2:
         print('Usage: python scripts/notion_create.py <slug>')
         sys.exit(1)
 
     slug = sys.argv[1]
-    spec_path = f'products/draft/{slug}/spec.json'
+    spec_path, product_dir = find_spec_path(slug)
 
-    if not os.path.exists(spec_path):
-        print(f'Error: {spec_path} not found')
+    if not spec_path:
+        print(f'Error: spec.json not found in products/draft/{slug}/ or products/ready/{slug}/')
         sys.exit(1)
 
+    print(f'  Using spec from: {spec_path}')
     with open(spec_path, encoding='utf-8') as f:
         spec = json.load(f)
 
     print(f'\nCreating: {spec["title"]}')
     print('=' * 50)
 
-    print('\n[1/4] Root page...')
+    print('\n[1/5] Root page...')
     page_id = create_product_page(spec)
 
-    print('\n[2/4] Databases...')
+    print('\n[2/5] Databases...')
     db_map = {}
     for db_spec in spec.get('databases', []):
         db_id = create_database(page_id, db_spec)
         db_map[db_spec['name']] = db_id
 
-    print('\n[3/4] Relations + sample data...')
+    print('\n[3/5] Relations + Rollups...')
     for db_spec in spec.get('databases', []):
-        has_relations = any(p['type'] == 'relation'
-                           for p in db_spec.get('properties', []))
+        has_relations = any(p['type'] == 'relation' for p in db_spec.get('properties', []))
         if has_relations:
             add_relations(db_spec, db_map[db_spec['name']], db_map)
+        add_rollups(db_spec, db_map[db_spec['name']])
+
+    print('\n[4/5] Sample data + row links...')
+    # First pass: create all rows, collect page_ids by name per db
+    all_db_page_ids = {}  # {db_name: {row_name: page_id}}
+    for db_spec in spec.get('databases', []):
         rows = db_spec.get('sample_rows', [])
         if rows:
-            add_sample_rows(db_map[db_spec['name']], rows, db_spec['properties'])
+            ids = add_sample_rows(db_map[db_spec['name']], rows, db_spec['properties'])
+            all_db_page_ids[db_spec['name']] = ids
 
-    print('\n[4/4] Welcome page...')
+    # Second pass: link rows via relation fields
+    for db_spec in spec.get('databases', []):
+        rows = db_spec.get('sample_rows', [])
+        row_page_ids = all_db_page_ids.get(db_spec['name'], {})
+        if rows and row_page_ids:
+            link_sample_rows(rows, db_spec['properties'], row_page_ids, all_db_page_ids)
+
+    print('\n[5/5] Welcome page...')
     create_welcome_page(page_id, spec)
 
     result = {
@@ -304,16 +401,16 @@ def main():
         'databases': db_map,
         'slug': slug
     }
-    result_path = f'products/draft/{slug}/notion_result.json'
-    os.makedirs(os.path.dirname(result_path), exist_ok=True)
-    with open(result_path, 'w', encoding='utf-8') as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
+    # Save to both draft/ and ready/ locations so downstream scripts find it
+    for base in [f'products/draft/{slug}', product_dir]:
+        result_path = f'{base}/notion_result.json'
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
+        with open(result_path, 'w', encoding='utf-8') as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
 
     print('\n' + '=' * 50)
     print(f'DONE: https://notion.so/{page_id.replace("-", "")}')
-    print(f'Result: {result_path}')
-    print(f'\nNext: Share the Notion page → "Share" → enable "Allow template duplication"')
-    print(f'Then: python scripts/set_template_url.py {slug} <notion_template_url>')
+    print(f'Result saved to {product_dir}/notion_result.json')
 
 
 if __name__ == '__main__':

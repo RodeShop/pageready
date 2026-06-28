@@ -1,17 +1,49 @@
 # Секреты — никогда в git
 .env
-.env.local
+.env.*
+!.env.example
 
-# Не пушить готовые продукты (это коммерческий контент)
+# Локальный runtime фабрики
+.auth/
+.chrome-factory/
+debug_screenshots/
+STOP
+
+# Логи
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+python
+
+# MiMo / Node
+.mimocode/node_modules/
+
+# Генерируемые медиа (пересоздаются скриптами)
+assets/gumroad-variants/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.webp
+**/*.gif
+**/*.mp4
+**/*.mov
+
+# Продукты (коммерческий контент + draft)
+products/draft/
 products/ready/
 products/published/
-products/draft/
 
-# Листинги (коммерческая ценность)
+# Листинги
 listings/*.md
 !listings/TEMPLATE.md
 
-# Системное
+# OS
 .DS_Store
 Thumbs.db
 *.tmp
+*.swp

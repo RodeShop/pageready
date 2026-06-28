@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-set_template_url.py — Adds the Notion template URL to Gumroad product description
-                       and publishes the product.
+set_template_url.py — Adds Notion template URL to Gumroad description and publishes.
 Usage: python scripts/set_template_url.py <slug> <notion_template_url>
 """
 
 import json
 import os
+import shutil
 import sys
 import requests
 from dotenv import load_dotenv
@@ -18,6 +18,7 @@ BASE_URL = 'https://api.gumroad.com/v2'
 
 
 def api_put(path, data):
+    data = dict(data)
     data['access_token'] = GUMROAD_TOKEN
     r = requests.put(f'{BASE_URL}{path}', data=data)
     result = r.json()
@@ -25,6 +26,14 @@ def api_put(path, data):
         print(f'  API error: {result.get("message", r.text[:300])}')
         r.raise_for_status()
     return result
+
+
+def load_spec_price(slug):
+    for path in [f'products/ready/{slug}/spec.json', f'products/draft/{slug}/spec.json']:
+        if os.path.exists(path):
+            with open(path, encoding='utf-8') as f:
+                return int(float(json.load(f).get('price', 19)) * 100)
+    return 1900
 
 
 def main():
@@ -48,59 +57,55 @@ def main():
 
     product_id = gumroad_result['gumroad_product_id']
 
-    # Read existing listing and append Notion URL section
     with open(listing_path, encoding='utf-8') as f:
         listing_md = f.read()
 
-    notion_block = f"""
+    sys.path.insert(0, os.path.dirname(__file__))
+    from gumroad_create import md_to_html, extract_description
 
----
+    desc_only = extract_description(listing_md) or listing_md
+
+    notion_block = f"""
 
 ## Get the Template
 
-**[Click here to duplicate the Notion template →]({notion_url})**
+**[Click here to duplicate the Notion template ->]({notion_url})**
 
-After clicking, select **"Duplicate"** in the top-right corner of the Notion page to add it to your workspace.
+After clicking, select **Duplicate** in the top-right corner of the Notion page.
 """
 
-    full_description = listing_md + notion_block
-
-    # Convert to HTML (reuse logic from gumroad_create)
-    sys.path.insert(0, os.path.dirname(__file__))
-    from gumroad_create import md_to_html
-    description_html = md_to_html(full_description)
+    description_html = md_to_html(desc_only + notion_block)
+    price_cents = load_spec_price(slug)
 
     print(f'\nUpdating Gumroad product {product_id}...')
-
-    # Update description with Notion URL and publish
-    result = api_put(f'/products/{product_id}', {
+    api_put(f'/products/{product_id}', {
         'description': description_html,
-        'published': 'true',
+        'price': price_cents,
     })
+    print('  Description + price updated.')
 
-    print(f'  Published: {result["product"].get("short_url")}')
+    print('  Enabling product (publish)...')
+    enable_result = api_put(f'/products/{product_id}/enable', {})
+    product = enable_result['product']
+    published = product.get('published', False)
+    print(f'  Published: {published} — {product.get("short_url")}')
 
-    # Update local result file
     gumroad_result['notion_template_url'] = notion_url
-    gumroad_result['published'] = True
-    gumroad_result['gumroad_short_url'] = result['product'].get('short_url', '')
+    gumroad_result['published'] = published
+    gumroad_result['price'] = price_cents // 100
+    gumroad_result['gumroad_short_url'] = product.get('short_url', gumroad_result.get('gumroad_short_url', ''))
 
     with open(gumroad_result_path, 'w', encoding='utf-8') as f:
         json.dump(gumroad_result, f, indent=2, ensure_ascii=False)
 
-    # Move draft → ready
     ready_dir = f'products/ready/{slug}'
     os.makedirs(ready_dir, exist_ok=True)
-
-    import shutil
     for fname in os.listdir(draft_dir):
         shutil.copy2(f'{draft_dir}/{fname}', f'{ready_dir}/{fname}')
 
     print(f'\n{"=" * 50}')
-    print(f'PUBLISHED: {gumroad_result["gumroad_short_url"]}')
-    print(f'Notion:    {notion_url}')
-    print(f'Files:     products/ready/{slug}/')
-    print(f'\nNext: python scripts/promote.py {slug}')
+    print(f'LIVE: {gumroad_result["gumroad_short_url"]}')
+    print(f'Notion: {notion_url}')
     print(f'{"=" * 50}')
 
 

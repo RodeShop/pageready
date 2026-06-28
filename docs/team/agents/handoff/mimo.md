@@ -32,6 +32,8 @@ Notion root: Factory Templates (38c8515a-ba65-80f2-854b-e2fb331af2ce)
 
 Правила: .mimocode/MIMO_FACTORY.md
 
-Цель сессии: максимум готовых продуктов в products/ready/
+Цель: БЕСКОНЕЧНЫЙ ЦИКЛ — продукт за продуктом без остановки.
+После каждого продукта: python scripts/setup_product.py <slug> → сразу следующая ниша.
+НЕ говорить "SESSION COMPLETE". НЕ ждать owner. НЕ запускать batch_activate.py.
 Pinterest лимит: максимум 2-3 пина в день (новый аккаунт)
 ```

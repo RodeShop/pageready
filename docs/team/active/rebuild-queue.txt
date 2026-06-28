@@ -1,0 +1,11 @@
+# Rebuild Wave — pilot #1 DONE
+
+# DONE notion-developer-career-os  (Gate 3 PASS 28.06)
+
+# Следующий (фаза 2, после регресса setup_product):
+# notion-freelance-client-tracker
+# notion-job-search-command-center
+# notion-study-knowledge-management
+# notion-personal-finance-tracker
+# notion-social-media-content-calendar
+# notion-startup-metrics-okr-tracker

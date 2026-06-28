@@ -247,3 +247,23 @@
   ]
 }
 ```
+
+---
+
+## Relations в sample_rows — ОБЯЗАТЕЛЬНО
+
+Rollup **не работает**, если relations пустые в `sample_rows`.
+
+| Правило | Почему |
+|---|---|
+| Title-поле = `"Name"` | `notion_create.py` линкует по ключу `Name` |
+| Каждый relation → ключ в sample_rows | Иначе Skill Count / Task Count = 0 |
+| Двусторонние связи — обе стороны | Projects.Skills + Skills.Projects |
+| Имена строк — **точное совпадение** | "React" ≠ "react" |
+
+```json
+{"Name": "My Project", "Skills": ["React", "TypeScript"]}
+{"Name": "React", "Projects": ["My Project"]}
+```
+
+Verify: в логе `notion_create.py` → `Linked N rows via relations`, N ≥ 3.

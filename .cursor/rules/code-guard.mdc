@@ -1,0 +1,13 @@
+---
+description: Code guard — scripts/ · *.bat · *.py только Mechanic по тикету
+globs: "scripts/**,*.bat,*.py"
+alwaysApply: false
+---
+
+# Code guard — Gumroad Factory
+
+Правки `scripts/`, `*.bat`, `*.py`, `.mimocode/` — только **Mechanic** по `docs/problems/<тикет>.md`.
+
+Lead и Owner — **не** правят эти пути (`lead-no-code.mdc`).
+
+MiMo пишет только в `products/draft/<slug>/` и `docs/team/active/TASK.md` — не в `scripts/`.

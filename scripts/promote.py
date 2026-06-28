@@ -73,7 +73,7 @@ def main():
         print('  Add token to .env once Pinterest app is approved.')
 
     # 3. Blog post
-    run([py, 'scripts/blog_publish.py', slug], '3/3  Blog post → GitHub Pages')
+    run([py, 'scripts/blog_publish.py', slug], '3/3  Blog post -> GitHub Pages')
 
     print(f'\n{"=" * 50}')
     print(f'PROMOTE DONE: {slug}')

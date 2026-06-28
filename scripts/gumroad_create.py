@@ -39,6 +39,25 @@ def api_put(path, data=None):
     return result
 
 
+def api_get(path, params=None):
+    params = dict(params or {})
+    params['access_token'] = GUMROAD_TOKEN
+    r = requests.get(f'{BASE_URL}{path}', params=params)
+    try:
+        return r.json()
+    except Exception:
+        return {}
+
+
+def find_product_by_permalink(permalink):
+    result = api_get('/products')
+    if result.get('success'):
+        for p in result.get('products', []):
+            if p.get('custom_permalink') == permalink:
+                return p
+    return None
+
+
 def md_to_html(md):
     """Convert simple Markdown to Gumroad-compatible HTML."""
     lines = md.strip().split('\n')
@@ -89,11 +108,46 @@ def _inline(text):
     return text
 
 
-def create_product(spec, listing_md):
+def extract_description(listing_md):
+    """Extract only the Description section from listing.md (skip Title/Price/Tags/etc.)"""
+    sections = re.split(r'^## ', listing_md, flags=re.MULTILINE)
+    desc = ''
+    template_block = ''
+    for section in sections:
+        name = section.split('\n', 1)[0].strip().lower()
+        body = section.split('\n', 1)[1].strip() if '\n' in section else ''
+        if name == 'description':
+            desc = body
+        elif name == 'get the template':
+            template_block = '\n\n## Get the Template\n\n' + body
+    return (desc + template_block).strip()
+
+
+def create_product(spec, listing_md, slug):
     price_cents = int(float(spec.get('price', 29)) * 100)
-    description = md_to_html(listing_md)
+    clean_md = extract_description(listing_md)
+    description = md_to_html(clean_md if clean_md else listing_md)
     permalink = spec.get('slug', re.sub(r'[^a-z0-9-]', '-', spec['title'].lower()))
 
+    # 1. Local check: reuse if gumroad_result.json already exists
+    for base in [f'products/draft/{slug}', f'products/ready/{slug}']:
+        result_path = f'{base}/gumroad_result.json'
+        if os.path.exists(result_path):
+            with open(result_path, encoding='utf-8') as f:
+                saved = json.load(f)
+            if saved.get('gumroad_product_id'):
+                print(f'  Found local result — reusing: {saved["gumroad_product_id"]}')
+                return {'id': saved['gumroad_product_id'],
+                        'short_url': saved.get('gumroad_short_url', '')}
+
+    # 2. API check by permalink (prevents duplicate if local file was lost)
+    print(f'  Checking Gumroad for existing permalink: {permalink}')
+    existing = find_product_by_permalink(permalink)
+    if existing:
+        print(f'  Found existing product: {existing["id"]} — skip create')
+        return existing
+
+    # 3. Create new product
     data = {
         'name': spec['title'],
         'description': description,
@@ -103,19 +157,28 @@ def create_product(spec, listing_md):
         'custom_permalink': permalink,
     }
 
-    result = api_post('/products', data)
-    product = result['product']
+    try:
+        result = api_post('/products', data)
+        product = result.get('product')
+        if not product:
+            raise RuntimeError(result.get('message', 'No product in response'))
+    except Exception as e:
+        if any(kw in str(e).lower() for kw in ('permalink', 'taken', 'already')):
+            print('  Permalink conflict — falling back to list search...')
+            existing = find_product_by_permalink(permalink)
+            if existing:
+                print(f'  Found existing product: {existing["id"]}')
+                return existing
+        raise
     print(f'  Created: {product["id"]}')
-    print(f'  Short URL: {product.get("short_url", "—")}')
+    print(f'  Short URL: {product.get("short_url", "-")}')
     return product
 
 
 def upload_user_guide(product_id, guide_path):
-    with open(guide_path, 'rb') as f:
-        files = {'file': ('user-guide.md', f, 'text/markdown')}
-        data = {'name': 'User Guide & Template Instructions'}
-        api_post(f'/products/{product_id}/product_files', data=data, files=files)
-    print(f'  User guide uploaded')
+    """File upload via API is not supported by Gumroad v2 — skip gracefully."""
+    print(f'  NOTE: Upload user-guide.md manually in Gumroad dashboard.')
+    print(f'  Edit URL: https://app.gumroad.com/products/{product_id}/edit')
 
 
 def main():
@@ -144,7 +207,7 @@ def main():
     print('=' * 50)
 
     print('\n[1/2] Creating product draft...')
-    product = create_product(spec, listing_md)
+    product = create_product(spec, listing_md, slug)
 
     print('\n[2/2] Uploading user guide...')
     upload_user_guide(product['id'], guide_path)
@@ -167,7 +230,7 @@ def main():
     print(f'Edit: {result["gumroad_edit_url"]}')
     print(f'Result saved: {result_path}')
     print(f'\nNext steps:')
-    print(f'  1. Share Notion page → get template URL')
+    print(f'  1. Share Notion page -> get template URL')
     print(f'  2. python scripts/set_template_url.py {slug} <notion_url>')
     print(f'  3. python scripts/publish.py {slug}')
 

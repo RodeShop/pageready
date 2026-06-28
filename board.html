@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -206,7 +206,40 @@
 <!-- PIPELINE TAB -->
 <div class="tab-panel" id="tab-pipeline">
   <div class="pipeline-wrap">
-    <h2>Автономный пайплайн МиМо</h2>
+
+    <div style="background:#fff;border:2px solid #059669;border-radius:14px;padding:24px 28px;margin-bottom:36px;">
+      <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">Твоё участие — одно действие</div>
+
+      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:20px;">
+        <div style="width:48px;height:48px;border-radius:12px;background:#059669;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">▶</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#111827;">Запустить фабрику.bat</div>
+          <div style="font-size:13px;color:#6b7280;margin-top:6px;line-height:1.6;">
+            Chrome (порт 9222) → очередь draft → MiMo loop.<br>
+            <b>Не закрывай Chrome.</b> Стоп: <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px;">Остановить фабрику.bat</code> или <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px;">STOP</code>.
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Конвейер делает сам</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#374151;">
+        <div>✓ Notion: страница + базы + sample data</div>
+        <div>✓ Notion: Publish as template</div>
+        <div>✓ Notion: Board / Calendar views</div>
+        <div>✓ Gumroad: draft + thumb + Publish</div>
+        <div>✓ Обложки pillow_pin.py</div>
+        <div>✓ Blog → GitHub Pages</div>
+        <div>✓ Следующая ниша из TRENDS</div>
+        <div>✓ STATUS + board.html</div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb;">
+        <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Опционально позже</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.7;">TikTok + Reels (Video Pipeline) · Notion Marketplace free lite</div>
+      </div>
+    </div>
+
+    <h2>Полный пайплайн (авто + ручной)</h2>
     <div id="pipeline-root"></div>
   </div>
 </div>
@@ -224,167 +257,162 @@
 <script>
 /* ===== DATA ===== */
 const STATS = [
-  { val: '0',    lbl: 'Продуктов готово' },
-  { val: '0',    lbl: 'Опубликовано' },
-  { val: '$0',   lbl: 'Доход' },
-  { val: '10',   lbl: 'Ниш в очереди' },
+  { val: '8',  lbl: 'Продуктов готово' },
+  { val: '7',  lbl: 'На Gumroad live' },
+  { val: '0',  lbl: 'Ждёт setup' },
+  { val: '3',  lbl: 'Ниш в очереди' },
 ];
 
 const PHASES = [
-  { id: 'setup',      name: 'Фундамент',   status: 'done'    },
-  { id: 'scripts',    name: 'Скрипты',     status: 'active'  },
-  { id: 'skill',      name: 'Скилл МиМо',  status: 'done'    },
-  { id: 'promo',      name: 'Промоушен',   status: 'active'  },
-  { id: 'test',       name: 'Тест',        status: 'planned' },
-  { id: 'scale',      name: 'Масштаб',     status: 'planned' },
+  { id: 'foundation', name: 'Фундамент', status: 'done'    },
+  { id: 'factory',    name: 'Фабрика',   status: 'done'    },
+  { id: 'quality',    name: 'Качество',  status: 'active'  },
+  { id: 'traffic',    name: 'Трафик',    status: 'active'  },
+  { id: 'growth',     name: 'Рост',      status: 'planned' },
+  { id: 'scale',      name: 'Масштаб',   status: 'planned' },
 ];
 
 const TASKS = [
   {
-    id: 'TASK-001', title: 'Инфраструктура фабрики',
-    phase: 'setup', status: 'done',
+    id: 'TASK-021', title: 'Gumroad idempotency',
+    phase: 'factory', status: 'in_progress',
     subtasks: [
-      { id: 's1-1', title: 'Workspace C:/Users/hramo/gumroad',     done: true },
-      { id: 's1-2', title: 'Роли агентов (mimo, lead, mechanic)',  done: true },
-      { id: 's1-3', title: 'TRENDS.md — 10 ниш в очереди',        done: true },
-      { id: 's1-4', title: 'NOTION_QUALITY.md — чеклист',         done: true },
-      { id: 's1-5', title: 'TZ.md — полное техзадание',           done: true },
+      { id: 't21-1', title: 'Owner: дубли удалены', done: true },
+      { id: 't21-2', title: 'Local gumroad_result reuse', done: true },
+      { id: 't21-3', title: 'API list by permalink fallback', done: false },
+      { id: 't21-4', title: 'POST error handler (no KeyError)', done: false },
     ],
-    note: 'Workspace готов. API ключи настроены.',
+    note: 'partial — docs/problems/2026-06-28-gumroad-permalink-lookup.md',
   },
   {
-    id: 'TASK-002', title: 'API интеграции',
-    phase: 'setup', status: 'done',
+    id: 'TASK-020', title: 'Обложки D — System Cards',
+    phase: 'factory', status: 'in_progress',
     subtasks: [
-      { id: 's2-1', title: 'Notion API ключ + корневая страница',  done: true },
-      { id: 's2-2', title: 'Gumroad API ключ',                     done: true },
-      { id: 's2-3', title: '.env с ключами',                       done: true },
-      { id: 's2-4', title: 'Тест: создание страниц и продуктов',   done: true },
+      { id: 't20-1', title: 'Direction D без emoji', done: true },
+      { id: 't20-2', title: 'pillow_pin + notion-cover.png', done: true },
+      { id: 't20-3', title: 'playwright_notion upload cover', done: true },
+      { id: 't20-4', title: 'E2E test Chrome (Owner)', done: false },
     ],
-    note: 'Оба API протестированы и работают.',
+    note: 'draft/notion-developer-career-os/*.png готовы',
   },
   {
-    id: 'TASK-003', title: 'notion_create.py',
-    phase: 'scripts', status: 'backlog',
+    id: 'TASK-015', title: '✅ Developer Career OS rebuild',
+    phase: 'quality', status: 'done',
     subtasks: [
-      { id: 's3-1', title: 'Читает spec.json',                     done: false },
-      { id: 's3-2', title: 'Создаёт страницу в Notion',            done: false },
-      { id: 's3-3', title: 'Создаёт базы данных с properties',     done: false },
-      { id: 's3-4', title: 'Добавляет sample rows',                done: false },
-      { id: 's3-5', title: 'Создаёт Welcome-страницу',             done: false },
+      { id: 't15-1', title: '6 баз + JTBD listing + user-guide 1805 слов', done: true },
+      { id: 't15-2', title: 'Relations в sample_rows (Skills↔Projects)', done: true },
+      { id: 't15-3', title: 'notion_create + setup_product LIVE', done: true },
+      { id: 't15-4', title: 'Notion template + Gumroad publish', done: true },
+      { id: 't15-5', title: 'Skill Count rollup verify', done: true },
+      { id: 't15-6', title: 'draft → ready sync', done: true },
     ],
-    note: '',
+    note: 'LIVE. Relations fix + setup_product. Mechanic: setup-product-stale-ready.md',
   },
   {
-    id: 'TASK-004', title: 'gumroad_create.py',
-    phase: 'scripts', status: 'backlog',
+    id: 'TASK-013', title: 'Agency Client OS — доработка',
+    phase: 'quality', status: 'in_progress',
     subtasks: [
-      { id: 's4-1', title: 'Создаёт продукт (draft)',              done: false },
-      { id: 's4-2', title: 'Загружает user-guide как файл',        done: false },
-      { id: 's4-3', title: 'Устанавливает цену из spec.json',      done: false },
+      { id: 't13-1', title: 'База Team + 2 формулы', done: false },
+      { id: 't13-2', title: 'user-guide 1200+ слов', done: false },
+      { id: 't13-3', title: 'Clients 10+ sample rows', done: false },
+      { id: 't13-4', title: 'setup_product.py (Gumroad 29.06)', done: false },
     ],
-    note: '',
+    note: 'Verify fail 28.06. Gumroad лимит исчерпан сегодня.',
   },
   {
-    id: 'TASK-005', title: 'publish.py + set_template_url.py',
-    phase: 'scripts', status: 'backlog',
+    id: 'TASK-014', title: 'Video Pipeline — TikTok/Reels',
+    phase: 'traffic', status: 'in_progress',
     subtasks: [
-      { id: 's5-1', title: 'Оркестратор: notion → gumroad',       done: false },
-      { id: 's5-2', title: 'Обновление листинга после публикации', done: false },
-      { id: 's5-3', title: 'Обновление STATUS.md',                 done: false },
+      { id: 't14-1', title: 'generate_video.py (moviepy + ElevenLabs)', done: false },
+      { id: 't14-2', title: 'video-script.md в Coder Mode MiMo', done: false },
+      { id: 't14-3', title: 'Owner: notion-clips + music + API key', done: false },
+      { id: 't14-4', title: 'setup_product.py шаг 2.5', done: false },
+      { id: 't14-5', title: 'Instagram Reels — тот же mp4', done: false },
     ],
-    note: '',
+    note: 'Mechanic: docs/problems/2026-06-28-video-pipeline.md',
   },
   {
-    id: 'TASK-006', title: 'MIMO_SKILL.md',
-    phase: 'skill', status: 'done',
+    id: 'TASK-011', title: 'Playwright + mimo_loop',
+    phase: 'factory', status: 'done',
     subtasks: [
-      { id: 's6-1', title: 'Как проектировать Notion базы',        done: true },
-      { id: 's6-2', title: 'Формула продающего листинга',          done: true },
-      { id: 's6-3', title: 'Правила самооценки A/B/C',             done: true },
-      { id: 's6-4', title: 'Autocompact после 5 продуктов',        done: true },
+      { id: 't11-1', title: 'playwright_gumroad + notion CDP', done: true },
+      { id: 't11-2', title: 'setup_product.py оркестратор', done: true },
+      { id: 't11-3', title: 'mimo_loop.bat автономный цикл', done: true },
+      { id: 't11-4', title: '8 продуктов сгенерировано', done: true },
     ],
-    note: 'skills/MIMO_SKILL.md + NOTION_BLOCKS.md + NOTION_QUALITY.md готовы.',
+    note: 'Стандарт: 5+ баз, $19, OS naming.',
   },
   {
-    id: 'TASK-007', title: 'MIMO_FACTORY.md — мультиагент',
-    phase: 'skill', status: 'done',
+    id: 'TASK-008', title: 'Pinterest API',
+    phase: 'traffic', status: 'in_progress',
     subtasks: [
-      { id: 's7-1', title: 'Architect → Coder → Designer loop',   done: true },
-      { id: 's7-2', title: 'Автозапуск publish.py',               done: true },
-      { id: 's7-3', title: 'DESIGNER_SKILL.md (Pillow + GPT-2)',  done: true },
+      { id: 't8-1', title: 'Бизнес-аккаунт', done: true },
+      { id: 't8-2', title: 'API dev app одобрение', done: false },
+      { id: 't8-3', title: 'promote.py автопост', done: false },
+      { id: 't8-4', title: 'pillow_pin.py', done: true },
     ],
-    note: 'Полная мультиагентная архитектура настроена. 3 режима в одной сессии.',
+    note: 'Ждём Pinterest API token.',
   },
   {
-    id: 'TASK-008', title: 'Pinterest pipeline',
-    phase: 'promo', status: 'in_progress',
+    id: 'TASK-016', title: 'Notion Marketplace — free lite',
+    phase: 'growth', status: 'backlog',
     subtasks: [
-      { id: 's8-1', title: 'Pinterest бизнес-аккаунт создан',     done: true },
-      { id: 's8-2', title: 'Pinterest API ключ (developers.pinterest.com)', done: false },
-      { id: 's8-3', title: 'PINTEREST_ACCESS_TOKEN → .env',       done: false },
-      { id: 's8-4', title: 'pinterest_publish.py',                done: false },
-      { id: 's8-5', title: 'pillow_pin.py (1000×1500)',           done: false },
+      { id: 't16-1', title: 'Lite spec (2-3 базы) per OS', done: false },
+      { id: 't16-2', title: 'CTA → Gumroad full version', done: false },
+      { id: 't16-3', title: 'Owner publish на Marketplace', done: false },
     ],
-    note: 'Бизнес аккаунт ✓ верный выбор. Ждём API токен.',
+    note: 'Органический трафик. Без Stripe. Июль.',
   },
   {
-    id: 'TASK-009', title: 'SEO-блог GitHub Pages',
-    phase: 'promo', status: 'in_progress',
+    id: 'TASK-017', title: 'Freemium воронка TikTok',
+    phase: 'growth', status: 'backlog',
     subtasks: [
-      { id: 's9-1', title: 'GitHub Pages репо (RodeShop/RodeShop)', done: true },
-      { id: 's9-2', title: 'Лендинг RodeShop задеплоен',         done: true },
-      { id: 's9-3', title: 'blog_publish.py (git commit)',         done: false },
-      { id: 's9-4', title: 'МиМо генерирует blog-post.md',        done: false },
+      { id: 't17-1', title: 'Bio: ссылка на free lite', done: false },
+      { id: 't17-2', title: 'Gumroad email capture', done: false },
+      { id: 't17-3', title: 'video → free → upsell full OS', done: false },
     ],
-    note: 'https://rodeshop.github.io/RodeShop/ уже живёт.',
+    note: 'docs/team/common/GROWTH.md',
   },
   {
-    id: 'TASK-010', title: 'Первый продукт end-to-end',
-    phase: 'test', status: 'backlog',
+    id: 'TASK-018', title: 'Bundle RodeShop $39',
+    phase: 'growth', status: 'backlog',
     subtasks: [
-      { id: 's10-1', title: 'МиМо генерирует Freelance Tracker',  done: false },
-      { id: 's10-2', title: 'publish.py — Notion + Gumroad',      done: false },
-      { id: 's10-3', title: 'Ручной шаг: Share в Notion',         done: false },
-      { id: 's10-4', title: 'Листинг живой на Gumroad',           done: false },
+      { id: 't18-1', title: 'Developer + Agency + Freelance', done: false },
+      { id: 't18-2', title: 'MiMo bundle listing', done: false },
+      { id: 't18-3', title: 'Gumroad bundle product', done: false },
     ],
-    note: '',
+    note: '3×$19 → bundle $39. Август.',
   },
   {
-    id: 'TASK-011', title: 'Gumroad профиль',
-    phase: 'test', status: 'backlog',
-    subtasks: [
-      { id: 's11-1', title: 'Имя магазина и описание',            done: false },
-      { id: 's11-2', title: 'Аватар и обложка',                   done: false },
-    ],
-    note: '',
-  },
-  {
-    id: 'TASK-012', title: 'Масштаб: МиМо работает сам',
+    id: 'TASK-019', title: 'YouTube Creator OS',
     phase: 'scale', status: 'backlog',
     subtasks: [
-      { id: 's12-1', title: 'МиМо делает 5+ продуктов/день',      done: false },
-      { id: 's12-2', title: 'Pinterest пины на каждый продукт',   done: false },
-      { id: 's12-3', title: 'Анализ продаж → удвоить нишу',       done: false },
-      { id: 's12-4', title: 'Подключить PayPal через друга',      done: false },
+      { id: 't19-1', title: '6 баз: Videos, Ideas, Sponsors...', done: false },
+      { id: 't19-2', title: 'После Agency Client OS', done: false },
     ],
-    note: '',
+    note: 'products/queue/notion-youtube-creator-os.md',
   },
 ];
 
 const PIPELINE_STEPS = [
-  { num: '1', title: 'GENERATE', auto: true,  desc: 'МиМо читает TRENDS.md → выбирает нишу → генерирует spec.json + user-guide + listing + pinterest-pin + blog-post' },
-  { num: '2', title: 'REVIEW',   auto: true,  desc: 'МиМо самопроверка по NOTION_QUALITY.md → оценка A/B/C. Если C — возврат на GENERATE (макс 2 раза)' },
-  { num: '3', title: 'PUBLISH',  auto: true,  desc: 'python publish.py <slug> → создаёт шаблон в Notion + листинг на Gumroad (draft) → сохраняет ID' },
-  { num: '4', title: 'SHARE',    auto: false, desc: 'Ты (10 сек): Notion → Share → Publish → Allow template. Копируешь ссылку → python set_template_url.py <slug> <url>' },
-  { num: '5', title: 'PROMOTE',  auto: true,  desc: 'python promote.py <slug> → постит пин в Pinterest + коммитит статью в GitHub Pages блог' },
-  { num: '6', title: 'LOG',      auto: true,  desc: 'МиМо обновляет STATUS.md + TRENDS.md → берёт следующую нишу' },
+  { num: 'A', title: 'НОВАЯ НИША', auto: false, desc: 'Запустить фабрику.bat → Chrome :9222 + mimo_loop.bat. MiMo генерирует следующий продукт.' },
+  { num: 'B', title: 'HOTFIX / REBUILD', auto: false, desc: 'Запустить фабрику.bat (Chrome) → Запустить продукт.bat → slug. НЕ запускать mimo_loop если не нужна новая ниша.' },
+  { num: '1', title: 'ARCHITECT',   auto: true,  desc: 'MiMo: TRENDS.md → выбор ниши → план 5-6 баз, relations, formulas' },
+  { num: '2', title: 'CODER',       auto: true,  desc: '/copywriting + /marketing-psychology → spec.json + relations в sample_rows + user-guide 1200+ + listing Grade A' },
+  { num: '3', title: 'DESIGNER',    auto: true,  desc: '/design-lebedev + Direction D → pillow_pin → gumroad-thumb + notion-cover.png' },
+  { num: '4', title: 'SETUP',       auto: true,  desc: 'setup_product.py ОДНОЙ командой: notion_create (если rebuild) → Playwright template + cover → Gumroad publish → blog' },
+  { num: '5', title: 'LOOP',        auto: true,  desc: 'STATUS + board → следующая ниша. Gumroad лимит 10/день — draft ждёт, MiMo не останавливается.' },
 ];
 
 const NOTES = [
-  { id: 'n1', date: '27 июн 2026', text: 'Фундамент готов. Notion API и Gumroad API протестированы. Начинаем писать скрипты.' },
-  { id: 'n2', date: '27 июн 2026', text: 'Скилл-пак МиМо готов: MIMO_SKILL + MIMO_FACTORY + NOTION_BLOCKS + DESIGNER_SKILL. Мультиагентная архитектура настроена.' },
-  { id: 'n3', date: '27 июн 2026', text: 'Pinterest: бизнес-аккаунт — правильный выбор. API доступен только для бизнес-аккаунтов. Получить токен: developers.pinterest.com → My apps → Create app → Generate access token. Нужные scope: boards:read, boards:write, pins:read, pins:write.' },
+  { id: 'n18', date: '28 июн 2026', text: 'Rebuild loop: rebuild-queue.txt + rebuild_loop.bat. Запустить фабрику → wave 7 slug подряд. Mechanic publish fix ✅.' },
+  { id: 'n15', date: '28 июн 2026', text: 'Developer Career OS: контент A, relations fix в spec. Ждёт setup_product.py. Skill invocation ✅ в MIMO_FACTORY.' },
+  { id: 'n14', date: '28 июн 2026', text: 'PIPELINE исправлен: Owner = только Запустить фабрику.bat. Notion template + Gumroad publish — полностью авто через setup_product.py.' },
+  { id: 'n12', date: '28 июн 2026', text: 'ROADMAP: Video → Marketplace lite → Freemium → Bundles $39. GROWTH.md — воронка 3 уровня. Reels = тот же mp4 что TikTok.' },
+  { id: 'n11', date: '28 июн 2026', text: 'Agency Client OS verify fail. Gumroad лимит 10/день. Новый стандарт: 5+ баз, 2+ формулы, 1200+ слов.' },
+  { id: 'n10', date: '27 июн 2026', text: '8 продуктов. Playwright CDP Chrome 9222. Developer Career OS + Social Media OS — новый стандарт OS naming.' },
+  { id: 'n9', date: '27 июн 2026', text: 'notion_create.py: link_sample_rows 2-pass. Relations работают если указаны в sample_rows.' },
+  { id: 'n8', date: '27 июн 2026', text: 'STATUS.md = источник правды. board.html = визуальный дашборд Owner.' },
 ];
 
 /* ===== TABS ===== */

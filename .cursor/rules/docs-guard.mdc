@@ -1,0 +1,30 @@
+---
+description: Docs guard — не плодить md · hot-лимиты · одна тема = один файл
+globs: docs/**
+alwaysApply: false
+---
+
+# Docs guard — Gumroad Factory
+
+Канон структуры: `structure.mdc` · `PROJECT_MAP.md`
+
+## Кто пишет что
+
+| Роль | Зона |
+|------|------|
+| **Lead** | `docs/team/**` · `research/TRENDS.md` · `skills/**` · новый `.md` — с согласия Owner |
+| **MiMo** | `docs/team/active/TASK.md` (финальный статус) · `products/draft/<slug>/` |
+| **Mechanic** | `docs/problems/*.md` |
+| **Owner** | `PROJECT_MAP.md` (стратегия) по согласованию с Lead |
+
+## Запрещено
+
+- Дубли: не дублировать информацию из TRENDS в STATUS и обратно
+- Hot > лимита без архива (`economy.mdc`)
+- Создавать `NOTES.md`, `TODO.md` вне TASKS
+- MiMo пишет в `docs/team/` кроме TASK.md финального статуса
+
+## Архив
+
+Закрытые ниши из TRENDS → пометить как `Готово` · не удалять.
+Старые TASK.md → `docs/team/archive/TASK-<id>_ARCHIVE.md` · не обновлять старое без Lead.
